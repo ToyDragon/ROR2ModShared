@@ -1,0 +1,9 @@
+﻿{
+  "Id": "FrogtownShared",
+  "DisplayName": "Frogtown Shared Utilities",
+  "Author": "Frogtown Matt",
+  "Version": "1.0.0",
+  "GameVersion": "1.0.0",
+  "AssemblyName": "FrogtownShared.dll",
+  "EntryMethod": "Frogtown.FrogtownShared.Load"
+}
