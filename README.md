@@ -1,4 +1,6 @@
 # Frogtown Mod Library
+Contains shared logic for updating player prefabs, interacting with chat, and maintaining RoR2Application.isModded.
+
 This mod is a prerequisite for:
 - [Cheat Chat Commands Mod](https://github.com/ToyDragon/ROR2ModChatCommandCheats)
 - [Healing Helper Mod](https://github.com/ToyDragon/ROR2ModHealingHelper)
