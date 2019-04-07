@@ -1,5 +1,5 @@
-# ROR2ModShared
-This mod is a prerequisite for
+# Frogtown Mod Library
+This mod is a prerequisite for:
 - [Cheat Chat Commands Mod](https://github.com/ToyDragon/ROR2ModChatCommandCheats)
 - [Healing Helper Mod](https://github.com/ToyDragon/ROR2ModHealingHelper)
 
