@@ -14,3 +14,8 @@ Also check out:
 2. Visit the [releases page](https://github.com/ToyDragon/ROR2ModShared/releases)
 3. Download the latest FrogtownShared.zip
 4. Unzip and move the FrogtownShared folder to your Mods folder
+
+# Developers
+The main benefit of this library is keeping track of how many mods are enabled, and updating the isModded flag. When you toggle the status of your mod call FrogtownShared.ModToggled(value), and it will automatically update the isModded flag.
+
+Another benefit is easy chat commands, add a chat command by calling FrogtownShared.AddChatCommand("YourCommand", yourDelegate). Your delegate will be provided the user who called it, and the list of command pieces including the command itself.
