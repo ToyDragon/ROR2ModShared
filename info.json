@@ -6,5 +6,5 @@
   "GameVersion": "1.0.0",
   "AssemblyName": "FrogtownShared.dll",
   "EntryMethod": "Frogtown.FrogtownShared.Load",
-  "Repository": "https://raw.githubusercontent.com/newman55/unity-mod-manager/master/Repository.json"
+  "Repository": "https://raw.githubusercontent.com/ToyDragon/ROR2ModShared/master/Repository.json"
 }
