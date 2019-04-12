@@ -1,0 +1,9 @@
+﻿{
+  "Releases": [
+    {
+      "Id": "FrogtownShared",
+      "Version": "1.0.0",
+      "DownloadUrl": "https://github.com/ToyDragon/ROR2ModShared/releases/download/0.0.1/FrogtownShared.zip"
+    }
+  ]
+}
