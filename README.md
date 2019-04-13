@@ -10,8 +10,8 @@ This mod is a prerequisite for:
 # Installation
 1. Install [BepInEx Mod Pack](https://thunderstore.io/package/bbepis/BepInExPack/)
 2. Visit the [releases page](https://github.com/ToyDragon/ROR2ModShared/releases)
-3. Download the latest FrogtownShared.zip
-4. Unzip and move the FrogtownShared folder to your \BepInEx\plugins folder.
+3. Download the latest FrogtownShared.dll
+4. Move FrogtownShared.dll to your \BepInEx\plugins folder
 
 # Developers
 This library can help you:
