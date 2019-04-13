@@ -5,8 +5,6 @@ This mod is a prerequisite for:
 - [Cheat Chat Commands Mod](https://github.com/ToyDragon/ROR2ModChatCommandCheats)
 - [Healing Helper Mod](https://github.com/ToyDragon/ROR2ModHealingHelper)
 - [Character Randomizer](https://github.com/ToyDragon/ROR2ModCharacterRandomizer)
-
-Also check out:
 - [Engineer Fixes](https://github.com/ToyDragon/ROR2ModEngineerLunarCoinFix)
 
 # Installation
