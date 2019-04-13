@@ -26,14 +26,13 @@ namespace Frogtown
             AddChatCommand("enable_mod", OnEnableModCommand);
             AddChatCommand("disable_mod", OnDisableModCommand);
 
-
-            //TODO remove this when done testing
-            AddChatCommand("clear_mod_flag", OnClearModFlagCommand);
+            //I use this to test multiplayer, leave it off in releases
+            //AddChatCommand("clear_mod_flag", OnClearModFlagCommand);
         }
         
         private bool OnClearModFlagCommand(string userName, string[] pieces)
         {
-            RoR2.RoR2Application.isModded = false;
+            RoR2Application.isModded = false;
             SendChat("Clearing mod flag.");
             return true;
         }
