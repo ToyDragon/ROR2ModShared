@@ -8,7 +8,7 @@ namespace Frogtown
 {
     public delegate void OnToggle(bool newEnabled);
 
-    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "1.0")]
+    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "1.0.1")]
     public class FrogtownShared : BaseUnityPlugin
     {
         public void Awake()
