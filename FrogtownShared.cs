@@ -1,16 +1,146 @@
-﻿using Harmony;
+﻿using BepInEx;
 using RoR2;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
-using UnityModManagerNet;
 
 namespace Frogtown
 {
-    public class FrogtownShared
+    public delegate void OnToggle(bool newEnabled);
+
+    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "1.0")]
+    public class FrogtownShared : BaseUnityPlugin
     {
-        public static UnityModManager.ModEntry modEntry;
+        public void Awake()
+        {
+            On.RoR2.Chat.AddMessage_string += (orig, message) =>
+            {
+                orig(message);
+                if (ParseUserAndMessage(message, out string userName, out string text))
+                {
+                    string[] pieces = text.Split(' ');
+                    TriggerChatCommand(userName, pieces);
+                }
+            };
+
+            AddChatCommand("enable_mod", OnEnableModCommand);
+            AddChatCommand("disable_mod", OnDisableModCommand);
+
+
+            //TODO remove this when done testing
+            AddChatCommand("clear_mod_flag", OnClearModFlagCommand);
+        }
+        
+        private bool OnClearModFlagCommand(string userName, string[] pieces)
+        {
+            RoR2.RoR2Application.isModded = false;
+            SendChat("Clearing mod flag.");
+            return true;
+        }
+
+        private static List<ModDetails> AllModDetails = new List<ModDetails>();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="details"></param>
+        internal static void RegisterMod(ModDetails details)
+        {
+            details.afterToggle += AfterModToggle;
+            AllModDetails.Add(details);
+        }
+
+        private List<ModDetails> GetModsFromId(string id)
+        {
+            List<ModDetails> details = new List<ModDetails>();
+
+            foreach (ModDetails detail in AllModDetails)
+            {
+                if (id == "all" || detail.GUID.ToLower() == id || detail.GUID.EndsWith("." + id))
+                {
+                    details.Add(detail);
+                }
+            }
+
+            return details;
+        }
+
+        private bool OnEnableModCommand(string userName, string[] pieces)
+        {
+            if(pieces.Length < 2 || pieces[1].Length == 0)
+            {
+                SendChat("Include a mod ID to enable.");
+                return true;
+            }
+
+            string expectedId = pieces[1].ToLower();
+            List<ModDetails> details = GetModsFromId(expectedId);
+            foreach (ModDetails detail in details)
+            {
+                detail.SetEnabled(true);
+            }
+
+            if (details.Count > 0)
+            {
+                SendChat("Enabled " + expectedId + ".");
+            }
+            else
+            {
+                SendChat("Mod " + expectedId + " not found.");
+            }
+
+            return true;
+        }
+
+        private bool OnDisableModCommand(string userName, string[] pieces)
+        {
+            if (pieces.Length < 2 || pieces[1].Length == 0)
+            {
+                SendChat("Include a mod ID to disable.");
+                return true;
+            }
+            
+            string expectedId = pieces[1].ToLower();
+            List<ModDetails> details = GetModsFromId(expectedId);
+            foreach (ModDetails detail in details)
+            {
+                detail.SetEnabled(false);
+            }
+
+            if (details.Count > 0)
+            {
+                SendChat("Disabled " + expectedId + ".");
+            }
+            else
+            {
+                SendChat("Mod " + expectedId + " not found.");
+            }
+            return true;
+        }
+
+        private static void AfterModToggle(ModDetails details)
+        {
+            if (details.isNotCheaty)
+            {
+                return;
+            }
+
+            if (details.enabled)
+            {
+                modCount++;
+            }
+            else
+            {
+                modCount--;
+            }
+            
+            bool newIsModded = modCount > 0;
+            if (RoR2Application.isModded != newIsModded)
+            {
+                RoR2Application.isModded = newIsModded;
+                Debug.Log("Set modded status to " + newIsModded);
+            }
+        }
 
         /// <summary>
         /// Number of active mods that should affect the isModded property. Call ModToggled to manipulate this.
@@ -22,13 +152,29 @@ namespace Frogtown
         /// </summary>
         private static Dictionary<string, List<Func<string, string[], bool>>> chatCommandList = new Dictionary<string, List<Func<string, string[], bool>>>();
 
-        public static bool Load(UnityModManager.ModEntry modEntry)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="user"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        private static bool ParseUserAndMessage(string input, out string user, out string message)
         {
-            var harmony = HarmonyInstance.Create("com.frogtown.sharedlibrary");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
-            FrogtownShared.modEntry = modEntry;
-            modEntry.Logger.Log("Loaded frogtown helper.");
-            return true;
+            user = "";
+            message = "";
+            int ix = input.IndexOf("<noparse>/");
+            if (ix >= 0)
+            {
+                int start = "<color=#123456><noparse>".Length;
+                int len = ix - "</noparse>:0123456789012345678901234".Length; // lol
+                user = input.Substring(start, len);
+                message = input.Substring(ix + "<noparse>/".Length);
+                message = message.Substring(0, message.IndexOf("</noparse>"));
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -64,31 +210,6 @@ namespace Frogtown
             {
                 list.Add(@delegate);
             }
-        }
-
-        /// <summary>
-        /// Maintains the number of mods that are active, and updates RoR2Application.isModded to match. Add one call to this in your OnToggle handler.
-        /// </summary>
-        /// <param name="enabled">True if mod is enabled</param>
-        public static void ModToggled(bool enabled)
-        {
-            if (enabled)
-            {
-                if (modCount == 0)
-                {
-                    modEntry.Logger.Log("Enabling MOD mode.");
-                }
-                modCount++;
-            }
-            else
-            {
-                if (modCount == 1)
-                {
-                    modEntry.Logger.Log("Disabling MOD mode.");
-                }
-                modCount--;
-            }
-            RoR2.RoR2Application.isModded = modCount > 0;
         }
 
         /// <summary>
@@ -161,47 +282,46 @@ namespace Frogtown
                     }
                     catch (Exception e)
                     {
-                        modEntry.Logger.Log("Command " + pieces[0] + " logged exception \"" + e.Message + "\"");
+                        Debug.Log("Command " + pieces[0] + " logged exception \"" + e.Message + "\"");
                     }
                 }
             }
         }
     }
 
-    /// <summary>
-    /// Parses messages from the chat box to trigger commands
-    /// </summary>
-    [HarmonyPatch(typeof(RoR2.Chat))]
-    [HarmonyPatch("AddMessage")]
-    [HarmonyPatch(new Type[] { typeof(string) })]
-    class ChatPatch
+    public class ModDetails
     {
-        static void Prefix(ref string message)
+        public string GUID;
+        public bool isNotCheaty { get; private set; }
+        public bool enabled { get; private set; }
+
+        public delegate void AfterToggleHandler(ModDetails details);
+        public AfterToggleHandler afterToggle = null;
+
+        public ModDetails(string guid)
         {
-            if (ParseUserAndMessage(message, out string userName, out string text))
+            GUID = guid;
+            FrogtownShared.RegisterMod(this);
+            SetEnabled(true);
+        }
+
+        public ModDetails(string guid, AfterToggleHandler afterToggleHandler) : this(guid)
+        {
+            afterToggle += afterToggleHandler;
+        }
+
+        public void SetEnabled(bool newEnabled)
+        {
+            if (newEnabled != enabled)
             {
-                FrogtownShared.modEntry.Logger.Log("Recieved command \"" + text + "\" from user \"" + userName + "\"");
-                string[] pieces = text.Split(' ');
-                FrogtownShared.TriggerChatCommand(userName, pieces);
+                enabled = newEnabled;
+                afterToggle?.Invoke(this);
             }
         }
 
-        public static bool ParseUserAndMessage(string input, out string user, out string message)
+        public void OnlyContainsBugFixesThatArentContriversial()
         {
-            user = "";
-            message = "";
-            int ix = input.IndexOf("<noparse>/");
-            if (ix >= 0)
-            {
-                int start = "<color=#123456><noparse>".Length;
-                int len = ix - "</noparse>:0123456789012345678901234".Length; // lol
-                user = input.Substring(start, len);
-                message = input.Substring(ix + "<noparse>/".Length);
-                message = message.Substring(0, message.IndexOf("</noparse>"));
-                return true;
-            }
-
-            return false;
+            isNotCheaty = true;
         }
     }
 }
