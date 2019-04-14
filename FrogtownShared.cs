@@ -1,18 +1,46 @@
 ﻿using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
 using RoR2;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Frogtown
 {
     public delegate void OnToggle(bool newEnabled);
 
-    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "1.0.1")]
+    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "2.0.0")]
     public class FrogtownShared : BaseUnityPlugin
     {
+        public static int modCount { private set; get; }
+        private static Dictionary<string, List<Func<string, string[], bool>>> chatCommandList = new Dictionary<string, List<Func<string, string[], bool>>>();
+        internal static Dictionary<string, ModDetails> allModDetails = new Dictionary<string, ModDetails>();
+        internal static List<string> log = new List<string>();
+
+        private static FrogtownShared instance;
+
+        public static void Log(string owner, LogLevel level, string message)
+        {
+            if(log.Count > 200)
+            {
+                log.RemoveAt(0);
+            }
+
+            string line = "[" + owner + "]: ";
+            line += message;
+
+            //TODO do something with log level
+
+            log.Add(line);
+        }
+
         public void Awake()
         {
+            instance = this;
+
             On.RoR2.Chat.AddMessage_string += (orig, message) =>
             {
                 orig(message);
@@ -26,45 +54,187 @@ namespace Frogtown
             AddChatCommand("enable_mod", OnEnableModCommand);
             AddChatCommand("disable_mod", OnDisableModCommand);
 
+
+            var deetz = new ModDetails("com.frogtown.shared")
+            {
+                githubAuthor = "ToyDragon",
+                githubRepo = "ROR2ModShared",
+                description = "Powers this UI and contains shared resources for other mods.",
+                noDisable = true
+            };
+            deetz.OnlyContainsBugFixesOrUIChangesThatArentContriversial();
+            RegisterMod(deetz);
+
             //I use this to test multiplayer, leave it off in releases
             //AddChatCommand("clear_mod_flag", OnClearModFlagCommand);
+            Invoke(nameof(InitUI), 0.5f);
+            Invoke(nameof(StartCheckingForUpdates), 2f);
+        }
+
+        private void StartCheckingForUpdates()
+        {
+            StartCoroutine(nameof(CheckForUpdates));
+        }
+
+        private IEnumerator CheckForUpdates()
+        {
+            var config = GetConfig();
+            foreach (string GUID in allModDetails.Keys)
+            {
+                if (allModDetails.TryGetValue(GUID, out ModDetails details))
+                {
+                    details.newVersionLoading = true;
+                }
+            }
+
+            bool anyError = false;
+            foreach (string GUID in allModDetails.Keys)
+            {
+                if(allModDetails.TryGetValue(GUID, out ModDetails details)){
+                    if(!string.IsNullOrWhiteSpace(details.githubAuthor) && !string.IsNullOrWhiteSpace(details.githubRepo))
+                    {
+                        string lastUpdateInst = config.Wrap("modupdates", "lastcheck-"+GUID, "", "0").Value;
+                        if(long.TryParse(lastUpdateInst, out long updateInst))
+                        {
+                            DateTime lastUpdate = new DateTime(updateInst);
+                            if(lastUpdate.AddDays(0.5) > DateTime.Now)
+                            {
+                                string newV = config.Wrap("modupdates", "newestversion-" + GUID, "", "0").Value;
+                                if(newV.CompareTo(details.version) > 0)
+                                {
+                                    details.newVersion = newV;
+                                }
+                                Log("FrogShared", LogLevel.Info, "Loaded new version of " + GUID + " from cache.");
+                                details.newVersionLoading = false;
+                                continue;
+                            }
+                        }
+
+                        if (anyError)
+                        {
+                            details.newVersionLoading = false;
+                            continue;
+                        }
+
+                        string url = "https://api.github.com/repos/" + details.githubAuthor + "/" + details.githubRepo + "/releases";
+                        Log("FrogShared", LogLevel.Info, "Requesting " + url);
+                        var req = UnityWebRequest.Get(url).SendWebRequest();
+                        while (!req.isDone)
+                        {
+                            yield return new WaitForEndOfFrame();
+                        }
+                        details.newVersionLoading = false;
+                        if (req.webRequest.isHttpError || req.webRequest.isNetworkError)
+                        {
+                            Log("FrogShared", LogLevel.Error, "Error loading releases from " + url);
+                            anyError = true;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                string text = req.webRequest.downloadHandler.text;
+
+                                string topRelease = "";
+                                int ix = 0;
+                                while ((ix = text.IndexOf("\"tag_name\": \"")) >= 0)
+                                {
+                                    text = text.Substring(ix + "\"tag_name\": \"".Length, text.Length - ix - "\"tag_name\": \"".Length);
+                                    string version = text.Substring(0, text.IndexOf("\""));
+                                    if(version.CompareTo(topRelease) > 0 && version.CompareTo(details.version) > 0)
+                                    {
+                                        topRelease = version;
+                                    }
+                                }
+                                details.newVersion = topRelease;
+                            }catch(Exception e)
+                            {
+                                Log("FrogShared", LogLevel.Info, "Error parsing JSON ");
+                                Log("FrogShared", LogLevel.Info, e.Message + " " + e.StackTrace);
+                            }
+                            config.Wrap("modupdates", "lastcheck-" + GUID, "", "0").Value = DateTime.Now.Ticks.ToString();
+                            config.Wrap("modupdates", "newestversion-" + GUID, "", "0").Value = details.newVersion;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void InitUI()
+        {
+            RoR2Application.isModded = false;
+            new GameObject(typeof(UI).FullName, typeof(UI));
+        }
+
+        internal static ConfigFile GetConfig()
+        {
+            return instance.Config;
+        }
+
+        public static bool CanToggleMod(string GUID, out bool status)
+        {
+            if (allModDetails.TryGetValue(GUID, out ModDetails deets) && !deets.noDisable)
+            {
+                status = deets.enabled;
+                return true;
+            }
+
+            status = true;
+            return false;
         }
         
-        private bool OnClearModFlagCommand(string userName, string[] pieces)
+        private static bool OnClearModFlagCommand(string userName, string[] pieces)
         {
             RoR2Application.isModded = false;
             SendChat("Clearing mod flag.");
             return true;
         }
 
-        private static List<ModDetails> AllModDetails = new List<ModDetails>();
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="details"></param>
-        internal static void RegisterMod(ModDetails details)
+        public static void RegisterMod(ModDetails details)
         {
             details.afterToggle += AfterModToggle;
-            AllModDetails.Add(details);
+            allModDetails.Add(details.GUID, details);
+            details.isRegistered = true;
+
+            if (details.noDisable)
+            {
+                details.SetEnabled(true);
+            }
         }
 
-        private List<ModDetails> GetModsFromId(string id)
+        private static List<ModDetails> GetModsFromId(string id)
         {
             List<ModDetails> details = new List<ModDetails>();
 
-            foreach (ModDetails detail in AllModDetails)
+            foreach (string modGUID in allModDetails.Keys)
             {
-                if (id == "all" || detail.GUID.ToLower() == id || detail.GUID.EndsWith("." + id))
+                if (id == "all" || modGUID.ToLower() == id || modGUID.EndsWith("." + id))
                 {
-                    details.Add(detail);
+                    details.Add(allModDetails[modGUID]);
                 }
             }
 
             return details;
         }
 
-        private bool OnEnableModCommand(string userName, string[] pieces)
+        internal static bool SetModStatus(string guid, bool enabled)
+        {
+            List<ModDetails> details = GetModsFromId(guid);
+            bool found = false;
+            foreach (ModDetails detail in details)
+            {
+                detail.SetEnabled(enabled);
+                found = true;
+            }
+            return found;
+        }
+
+        private static bool OnEnableModCommand(string userName, string[] pieces)
         {
             if(pieces.Length < 2 || pieces[1].Length == 0)
             {
@@ -73,13 +243,7 @@ namespace Frogtown
             }
 
             string expectedId = pieces[1].ToLower();
-            List<ModDetails> details = GetModsFromId(expectedId);
-            foreach (ModDetails detail in details)
-            {
-                detail.SetEnabled(true);
-            }
-
-            if (details.Count > 0)
+            if (SetModStatus(expectedId, true))
             {
                 SendChat("Enabled " + expectedId + ".");
             }
@@ -91,7 +255,7 @@ namespace Frogtown
             return true;
         }
 
-        private bool OnDisableModCommand(string userName, string[] pieces)
+        private static bool OnDisableModCommand(string userName, string[] pieces)
         {
             if (pieces.Length < 2 || pieces[1].Length == 0)
             {
@@ -100,13 +264,7 @@ namespace Frogtown
             }
             
             string expectedId = pieces[1].ToLower();
-            List<ModDetails> details = GetModsFromId(expectedId);
-            foreach (ModDetails detail in details)
-            {
-                detail.SetEnabled(false);
-            }
-
-            if (details.Count > 0)
+            if (SetModStatus(expectedId, false))
             {
                 SendChat("Disabled " + expectedId + ".");
             }
@@ -132,24 +290,14 @@ namespace Frogtown
             {
                 modCount--;
             }
-            
+
             bool newIsModded = modCount > 0;
             if (RoR2Application.isModded != newIsModded)
             {
                 RoR2Application.isModded = newIsModded;
-                Debug.Log("Set modded status to " + newIsModded);
+                Log("FrogShared", LogLevel.Info, "Set isModded flag to " + newIsModded);
             }
         }
-
-        /// <summary>
-        /// Number of active mods that should affect the isModded property. Call ModToggled to manipulate this.
-        /// </summary>
-        public static int modCount { private set; get; }
-
-        /// <summary>
-        /// Mapping of commands to handlers
-        /// </summary>
-        private static Dictionary<string, List<Func<string, string[], bool>>> chatCommandList = new Dictionary<string, List<Func<string, string[], bool>>>();
 
         /// <summary>
         /// 
@@ -290,37 +438,47 @@ namespace Frogtown
 
     public class ModDetails
     {
-        public string GUID;
+        public string githubAuthor;
+        public string githubRepo;
+        public string description;
+        public string newVersion;
+        public bool noDisable;
+
+        internal bool isRegistered;
+
+        public string GUID { get; private set; }
         public bool isNotCheaty { get; private set; }
         public bool enabled { get; private set; }
+        public string version { get; private set; }
+
+        public string releaseUrl { get; internal set; }
+        public bool newVersionLoading { get; internal set; }
 
         public delegate void AfterToggleHandler(ModDetails details);
         public AfterToggleHandler afterToggle = null;
 
-        public ModDetails(string guid)
+        public ModDetails(string GUID)
         {
-            GUID = guid;
-            FrogtownShared.RegisterMod(this);
-            SetEnabled(true);
-        }
-
-        public ModDetails(string guid, AfterToggleHandler afterToggleHandler) : this(guid)
-        {
-            afterToggle += afterToggleHandler;
+            this.GUID = GUID;
         }
 
         public void SetEnabled(bool newEnabled)
         {
-            if (newEnabled != enabled)
+            if (isRegistered && newEnabled != enabled)
             {
                 enabled = newEnabled;
                 afterToggle?.Invoke(this);
             }
         }
 
-        public void OnlyContainsBugFixesThatArentContriversial()
+        public void OnlyContainsBugFixesOrUIChangesThatArentContriversial()
         {
             isNotCheaty = true;
+        }
+
+        internal void SetVersion(string version)
+        {
+            this.version = version;
         }
     }
 }
