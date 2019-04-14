@@ -480,7 +480,7 @@ namespace Frogtown
                     }
                     row.isAuthorCollapsed = false;
                     row.modName = modInfo.modName;
-                    row.description = modInfo.modName;
+                    row.description = modInfo.description;
                     row.firstForAuthor = modInfo.githubAuthor != lastAuthor;
                     row.version = modInfo.version;
                     if(modInfo.details != null)
