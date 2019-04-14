@@ -53,7 +53,6 @@ namespace Frogtown
                  where attributeList != null && attributeList.Count() > 0
                  let attribute = attributeList.First() as BepInPlugin
                  select new ModInfo() {
-                     type = t,
                      GUID = attribute.GUID,
                      version = attribute.Version.ToString(),
                      modName = attribute.Name
@@ -69,7 +68,6 @@ namespace Frogtown
                     info.description = deetz.description;
                     info.details = deetz;
                     deetz.SetVersion(info.version);
-                    FrogtownShared.Log("UI", LogLevel.Debug, info.modName + " from " + info.type.Assembly.Location);
                 }
                 else
                 {
@@ -299,7 +297,7 @@ namespace Frogtown
         private void CalculateWindowPos()
         {
             windowSize = new Vector2(960, 720);
-            windowRect = new Rect((Screen.width - windowSize.x) / 2f, (Screen.height - windowSize.y) / 2f, 0, 0);
+            windowRect = new Rect((Screen.width - windowSize.x) / 2f, (Screen.height - windowSize.y) / 2f + 100f, 0, 0);
         }
 
         string[] tabs = { "Mods", "Settings", "Log"};
@@ -735,7 +733,6 @@ namespace Frogtown
 
         class ModInfo
         {
-            public Type type;
             public string GUID;
             public string githubAuthor;
             public string githubRepo;
