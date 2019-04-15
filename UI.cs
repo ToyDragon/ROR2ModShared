@@ -1,5 +1,4 @@
-﻿using BepInEx;
-using BepInEx.Logging;
+﻿using BepInEx.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,16 +9,15 @@ namespace Frogtown
 {
     public class UI : MonoBehaviour
     {
-        public static GUIStyle window = null;
-        public static GUIStyle h1 = null;
-        public static GUIStyle h2 = null;
-        public static GUIStyle bold = null;
-        public static GUIStyle button = null;
-        public static GUIStyle settings = null;
-        public static GUIStyle status = null;
-        public static GUIStyle www = null;
-        public static GUIStyle updates = null; 
-        public static GUIStyle richtext = null;
+        public GUIStyle window = null;
+        public GUIStyle h1 = null;
+        public GUIStyle h2 = null;
+        public GUIStyle button = null;
+        public GUIStyle richtext = null;
+
+        public GUIStyle green = null;
+        public GUIStyle gray = null;
+        public GUIStyle red = null;
 
         public bool hasLaunched;
         public bool hasInit;
@@ -36,7 +34,6 @@ namespace Frogtown
         private bool GameCursorLocked { get; set; }
 
         private UISettings uiSettings = new UISettings();
-        private ModInfo[] allModInfo;
 
         private HashSet<string> collapsedAuthors = new HashSet<string>();
 
@@ -45,40 +42,6 @@ namespace Frogtown
             DontDestroyOnLoad(this);
             windowSize = new Vector2(960, 720);
             scrollPositions = new Vector2[3];
-
-            allModInfo =
-                (from a in AppDomain.CurrentDomain.GetAssemblies()
-                 from t in a.GetTypes()
-                 let attributeList = t.GetCustomAttributes(typeof(BepInPlugin), true).Take(1)
-                 where attributeList != null && attributeList.Count() > 0
-                 let attribute = attributeList.First() as BepInPlugin
-                 select new ModInfo() {
-                     GUID = attribute.GUID,
-                     version = attribute.Version.ToString(),
-                     modName = attribute.Name
-                 }
-                 ).ToArray();
-
-            foreach(var info in allModInfo)
-            {
-                if(FrogtownShared.allModDetails.TryGetValue(info.GUID, out ModDetails deetz))
-                {
-                    info.githubAuthor = deetz.githubAuthor;
-                    info.githubRepo = deetz.githubRepo;
-                    info.description = deetz.description;
-                    info.details = deetz;
-                    deetz.SetVersion(info.version);
-                }
-                else
-                {
-                    info.githubAuthor = "Unknown";
-                    info.githubRepo = "";
-                    info.description = "No Description.";
-                }
-            }
-
-            Array.Sort(allModInfo, (a, b) => { return a.githubAuthor.CompareTo(b.githubAuthor); });
-
             LoadSettings();
         }
 
@@ -87,18 +50,6 @@ namespace Frogtown
             var config = FrogtownShared.GetConfig();
             config.Wrap("ui", "scale", "", "1").Value = uiSettings.scale.ToString();
             config.Wrap("ui", "showonstart", "", "true").Value = uiSettings.showOnStart.ToString();
-            
-            foreach (var modInfo in allModInfo)
-            {
-                if (!string.IsNullOrEmpty(modInfo.GUID))
-                {
-                    if (FrogtownShared.CanToggleMod(modInfo.GUID, out bool isActive))
-                    {
-                        config.Wrap("mods", modInfo.GUID, "", "true").Value = isActive.ToString();
-                    }
-                }
-            }
-
             config.Save();
         }
 
@@ -115,18 +66,6 @@ namespace Frogtown
 
             raw = config.Wrap("ui", "showonstart", "", "true").Value;
             bool.TryParse(raw, out uiSettings.showOnStart);
-
-            foreach (var modInfo in allModInfo)
-            {
-                if (FrogtownShared.CanToggleMod(modInfo.GUID, out bool isActive))
-                {
-                    raw = config.Wrap("mods", modInfo.GUID, "", "true").Value;
-                    bool.TryParse(raw, out bool shouldBeActive);
-                    if (isActive != shouldBeActive) {
-                        FrogtownShared.SetModStatus(modInfo.GUID, shouldBeActive);
-                    }
-                }
-            }
         }
 
         void Start()
@@ -136,11 +75,6 @@ namespace Frogtown
             {
                 ToggleWindow(true);
             }
-        }
-
-        void OnDestroy()
-        {
-
         }
 
         void Update()
@@ -169,49 +103,31 @@ namespace Frogtown
         private void PrepareGUI()
         {
             window = new GUIStyle();
-            window.name = "umm window";
-            //window.normal.background = Textures.Window;
-            //window.normal.background.wrapMode = TextureWrapMode.Repeat;
 
             h1 = new GUIStyle();
-            h1.name = "umm h1";
             h1.normal.textColor = Color.white;
             h1.fontStyle = FontStyle.Bold;
             h1.alignment = TextAnchor.MiddleCenter;
 
             h2 = new GUIStyle();
-            h2.name = "umm h2";
             h2.normal.textColor = new Color(0.6f, 0.91f, 1f);
             h2.fontStyle = FontStyle.Bold;
 
-            bold = new GUIStyle(GUI.skin.label);
-            bold.name = "umm bold";
-            bold.normal.textColor = Color.white;
-            bold.fontStyle = FontStyle.Bold;
-
             button = new GUIStyle(GUI.skin.button);
-            button.name = "umm button";
-
-            settings = new GUIStyle();
-            settings.alignment = TextAnchor.MiddleCenter;
-            settings.stretchHeight = true;
-
-            status = new GUIStyle();
-            status.alignment = TextAnchor.MiddleCenter;
-            status.stretchHeight = true;
-
-            www = new GUIStyle();
-            www.alignment = TextAnchor.MiddleCenter;
-            www.stretchHeight = true;
-
-            updates = new GUIStyle();
-            updates.alignment = TextAnchor.MiddleCenter;
-            updates.stretchHeight = true;
 
             richtext = new GUIStyle();
             richtext.richText = true;
             richtext.normal.textColor = Color.white;
 
+            green = new GUIStyle();
+            green.normal.textColor = Color.green;
+
+            gray = new GUIStyle();
+            gray.normal.textColor = Color.gray;
+
+            red = new GUIStyle();
+            red.padding = RectOffset(6);
+            red.normal.textColor = Color.red;
 
             columns.Add(new Column { name = "", width = 50}); // Group by author
             columns.Add(new Column { name = "Author", width = 130 });
@@ -224,48 +140,28 @@ namespace Frogtown
 
         private void ScaleGUI()
         {
-            GUI.skin.button.padding = new RectOffset(Scale(10), Scale(10), Scale(3), Scale(3));
-            GUI.skin.button.margin = RectOffset(Scale(4), Scale(2));
+            GUI.skin.button.padding = new RectOffset(10, 10, 3, 3);
+            GUI.skin.button.margin = RectOffset(4, 2);
 
-            GUI.skin.horizontalSlider.fixedHeight = Scale(12);
+            GUI.skin.horizontalSlider.fixedHeight = 12;
             GUI.skin.horizontalSlider.border = RectOffset(3, 0);
             GUI.skin.horizontalSlider.padding = RectOffset(0, 0);
-            GUI.skin.horizontalSlider.margin = RectOffset(Scale(4), Scale(8));
+            GUI.skin.horizontalSlider.margin = RectOffset(4, 8);
 
-            GUI.skin.horizontalSliderThumb.fixedHeight = Scale(12);
+            GUI.skin.horizontalSliderThumb.fixedHeight = 12;
             GUI.skin.horizontalSliderThumb.border = RectOffset(4, 0);
-            GUI.skin.horizontalSliderThumb.padding = RectOffset(Scale(7), 0);
+            GUI.skin.horizontalSliderThumb.padding = RectOffset(7, 0);
             GUI.skin.horizontalSliderThumb.margin = RectOffset(0);
 
-            GUI.skin.toggle.margin.left = Scale(10);
+            GUI.skin.toggle.margin.left = 10;
 
-            window.padding = RectOffset(Scale(5));
-            h1.fontSize = Scale(16);
-            h1.margin = RectOffset(Scale(0), Scale(5));
-            h2.fontSize = Scale(13);
-            h2.margin = RectOffset(Scale(0), Scale(3));
-            button.fontSize = Scale(13);
-            button.padding = RectOffset(Scale(30), Scale(5));
-
-            int iconHeight = 28;
-            settings.fixedWidth = Scale(24);
-            settings.fixedHeight = Scale(iconHeight);
-            status.fixedWidth = Scale(12);
-            status.fixedHeight = Scale(iconHeight);
-            www.fixedWidth = Scale(24);
-            www.fixedHeight = Scale(iconHeight);
-            updates.fixedWidth = Scale(26);
-            updates.fixedHeight = Scale(iconHeight);
-        }
-
-        public int Scale(int value)
-        {
-            return (int)(value * uiSettings.scale);
-        }
-
-        private float Scale(float value)
-        {
-            return value * uiSettings.scale;
+            window.padding = RectOffset(5);
+            h1.fontSize = 16;
+            h1.margin = RectOffset(0, 5);
+            h2.fontSize = 13;
+            h2.margin = RectOffset(0, 3);
+            button.fontSize = 13;
+            button.padding = RectOffset(30, 5);
         }
 
         private void OnGUI()
@@ -399,49 +295,73 @@ namespace Frogtown
             }
 
             GUILayout.EndHorizontal();
+            var GUIDs = ModManager.modDetails.Keys.ToArray();
+            Array.Sort(GUIDs, (a, b) => {
+                ModManager.modDetails.TryGetValue(a, out ModDetails details);
+                string aAuthor = details.frogtownModDetails?.githubAuthor ?? "Unknown";
+
+                ModManager.modDetails.TryGetValue(b, out details);
+                string bAuthor = details.frogtownModDetails?.githubAuthor ?? "Unknown";
+
+                return aAuthor.CompareTo(bAuthor);
+            });
 
             List<ModRow> rows = new List<ModRow>();
 
             string lastAuthor = "";
             ModRow authorRow = null;
-            foreach(var modInfo in allModInfo)
+            foreach(string GUID in GUIDs)
             {
-                if(modInfo.githubAuthor != lastAuthor)
+                ModManager.modDetails.TryGetValue(GUID, out ModDetails details);
+                string author = details.frogtownModDetails?.githubAuthor ?? "Unknown";
+                if(author != lastAuthor)
                 {
                     if(authorRow != null)
                     {
                         rows.Add(authorRow);
                         authorRow = null;
                     }
-                    if (collapsedAuthors.Contains(modInfo.githubAuthor))
+                    if (collapsedAuthors.Contains(author))
                     {
                         authorRow = new ModRow();
                         ModRow rowAnchor = authorRow;
-                        authorRow.canToggle = FrogtownShared.CanToggleMod(modInfo.GUID, out bool isActive);
+                        authorRow.canToggle = ModManager.CanToggleMod(GUID, out bool isActive);
                         if (authorRow.canToggle)
                         {
                             authorRow.isActive = isActive;
                         }
-                        authorRow.githubAuthor = modInfo.githubAuthor;
+                        authorRow.githubAuthor = author;
                         if(authorRow.githubAuthor != "Unknown")
                         {
-                            authorRow.url = "https://github.com/" + modInfo.githubAuthor;
+                            authorRow.url = "https://github.com/" + author;
+                            authorRow.modName = "All mods from " + author;
+                        }
+                        else
+                        {
+                            authorRow.modName = "All mods from unknown authors";
                         }
                         authorRow.isAuthorCollapsed = true;
-                        authorRow.modName = "All mods from " + modInfo.githubAuthor;
-                        authorRow.description = modInfo.modName;
+                        authorRow.description = details.modName;
                         authorRow.firstForAuthor = true;
+
+                        if(details.frogtownModDetails == null && details.enabled != details.initialEnabled)
+                        {
+                            authorRow.statusStyle = red;
+                            authorRow.statusMessage = "Must restart game to change mod status.";
+                        }
 
                         authorRow.onToggleActive += () =>
                         {
                             FrogtownShared.Log("FrogShared", LogLevel.Info, "Setting mods from " + rowAnchor.githubAuthor + " to " + !rowAnchor.isActive);
-                            foreach (var modFromAuthor in allModInfo)
+                            foreach (string otherGUID in GUIDs)
                             {
-                                if(modFromAuthor.githubAuthor == rowAnchor.githubAuthor)
+                                ModManager.modDetails.TryGetValue(otherGUID, out ModDetails otherDetails);
+                                string otherAuthor = otherDetails.frogtownModDetails?.githubAuthor ?? "Unknown";
+                                if (otherAuthor == author)
                                 {
-                                    if(FrogtownShared.CanToggleMod(modFromAuthor.GUID, out bool unused))
+                                    if(ModManager.CanToggleMod(otherGUID, out bool unused))
                                     {
-                                        FrogtownShared.SetModStatus(modFromAuthor.GUID, !rowAnchor.isActive);
+                                        ModManager.ToggleMod(otherGUID, !rowAnchor.isActive);
                                     }
                                 }
                             }
@@ -451,7 +371,7 @@ namespace Frogtown
                         {
                             collapsedAuthors.Remove(rowAnchor.githubAuthor);
                         };
-                        lastAuthor = modInfo.githubAuthor;
+                        lastAuthor = author;
 
                         continue;
                     }
@@ -459,48 +379,57 @@ namespace Frogtown
 
                 if (authorRow != null)
                 {
-                    bool canToggle = FrogtownShared.CanToggleMod(modInfo.GUID, out bool isActive);
+                    bool canToggle = ModManager.CanToggleMod(GUID, out bool isActive);
                     authorRow.canToggle = authorRow.canToggle || canToggle;
                     if (canToggle)
                     {
                         authorRow.isActive = authorRow.isActive || isActive;
                     }
-                    authorRow.description += ", " + modInfo.modName;
+                    authorRow.description += ", " + details.modName;
+
+                    if (details.frogtownModDetails == null && details.enabled != details.initialEnabled)
+                    {
+                        authorRow.statusStyle = red;
+                        authorRow.statusMessage = "Must restart game to change mod status.";
+                    }
                 }
                 else
                 {
                     ModRow row = new ModRow();
-                    row.canToggle = FrogtownShared.CanToggleMod(modInfo.GUID, out bool isActive);
+                    row.canToggle = ModManager.CanToggleMod(GUID, out bool isActive);
                     row.isActive = isActive;
 
-                    row.githubAuthor = modInfo.githubAuthor;
-                    if (row.githubAuthor != "Unknown")
+                    row.githubAuthor = author;
+                    if (details.frogtownModDetails != null)
                     {
-                        row.url = "https://github.com/" + modInfo.githubAuthor + "/" + modInfo.githubRepo;
+                        row.url = "https://github.com/" + details.frogtownModDetails.githubAuthor + "/" + details.frogtownModDetails.githubRepo;
                     }
                     row.isAuthorCollapsed = false;
-                    row.modName = modInfo.modName;
-                    row.description = modInfo.description;
-                    row.firstForAuthor = modInfo.githubAuthor != lastAuthor;
-                    row.version = modInfo.version;
-                    if(modInfo.details != null)
-                    {
-                        row.newVersionLoading = modInfo.details.newVersionLoading;
-                        row.newVersion = modInfo.details.newVersion;
-                    }
+                    row.modName = details.modName;
+                    row.description = details.frogtownModDetails?.description ?? "";
+                    row.firstForAuthor = author != lastAuthor;
+                    row.version = details.version;
+                    row.newVersionLoading = details.frogtownModDetails?.newVersionLoading ?? false;
+                    row.newVersion = details.frogtownModDetails?.newVersion ?? "";
                     row.onToggleActive += () =>
                     {
-                        FrogtownShared.SetModStatus(modInfo.GUID, !row.isActive);
+                        ModManager.ToggleMod(GUID, !row.isActive);
                     };
                     row.onToggleAuthor += () =>
                     {
-                        FrogtownShared.Log("FrogShared", LogLevel.Error, "Error test on collapse");
                         collapsedAuthors.Add(row.githubAuthor);
                     };
+
+                    if (details.frogtownModDetails == null && details.enabled != details.initialEnabled)
+                    {
+                        row.statusStyle = red;
+                        row.statusMessage = "Must restart game to change mod status.";
+                    }
+
                     rows.Add(row);
                 }
 
-                lastAuthor = modInfo.githubAuthor;
+                lastAuthor = author;
             }
 
             if (authorRow != null)
@@ -580,9 +509,6 @@ namespace Frogtown
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal(colWidth[++col]);
-                    GUILayout.EndHorizontal();
-
-                    GUILayout.BeginHorizontal(colWidth[++col]);
                         if (row.canToggle)
                         {
                             bool newIsActive = row.isActive;
@@ -595,6 +521,12 @@ namespace Frogtown
                         else
                         {
                             GUILayout.Toggle(true, new GUIContent("", row.modName + " cannot be disabled."));
+                        }
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal(colWidth[++col]);
+                        if (!string.IsNullOrEmpty(row.statusMessage))
+                        {
+                            GUILayout.Label(new GUIContent("X", row.statusMessage), row.statusStyle);
                         }
                     GUILayout.EndHorizontal();
                 GUILayout.EndHorizontal();
@@ -719,7 +651,8 @@ namespace Frogtown
             public bool canToggle;
             public bool firstForAuthor;
             public bool isAuthorCollapsed;
-            public string dllFile;
+            public string statusMessage;
+            public GUIStyle statusStyle;
 
             public UnityAction onToggleAuthor = null;
             public UnityAction onToggleActive = null;
@@ -729,17 +662,6 @@ namespace Frogtown
         {
             public bool showOnStart;
             public float scale;
-        }
-
-        class ModInfo
-        {
-            public string GUID;
-            public string githubAuthor;
-            public string githubRepo;
-            public string modName;
-            public string description;
-            public string version;
-            public ModDetails details;
         }
     }
 }
