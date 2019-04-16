@@ -9,26 +9,27 @@ namespace Frogtown
 {
     public class UI : MonoBehaviour
     {
-        public GUIStyle window = null;
-        public GUIStyle h1 = null;
-        public GUIStyle h2 = null;
-        public GUIStyle button = null;
-        public GUIStyle richtext = null;
+        private GUIStyle window = null;
+        private GUIStyle h1 = null;
+        private GUIStyle h2 = null;
+        private GUIStyle button = null;
+        private GUIStyle richtext = null;
+        private GUIStyle curVersion = null;
 
-        public GUIStyle nodisable = null;
-        public GUIStyle red = null;
+        private GUIStyle nodisable = null;
+        private GUIStyle red = null;
 
-        public bool hasLaunched;
-        public bool hasInit;
+        private bool hasLaunched;
+        private bool hasInit;
 
-        public Rect windowRect = new Rect(0, 0, 0, 0);
-        public Vector2 windowSize = Vector2.zero;
-        public Resolution lastResolution;
+        private Rect windowRect = new Rect(0, 0, 0, 0);
+        private Vector2 windowSize = Vector2.zero;
+        private Resolution lastResolution;
 
-        public float pendingScale = 1f;
-        public bool isOpen;
-        public int tabId = 0;
-        public Vector2[] scrollPositions = null;
+        private float pendingScale = 1f;
+        private bool isOpen;
+        private int tabId = 0;
+        private Vector2[] scrollPositions = null;
         private List<Column> columns = new List<Column>();
         private bool GameCursorLocked { get; set; }
 
@@ -110,7 +111,13 @@ namespace Frogtown
 
             h2 = new GUIStyle();
             h2.normal.textColor = new Color(0.6f, 0.91f, 1f);
+            h2.padding = new RectOffset(0, 0, 7, 0);
             h2.fontStyle = FontStyle.Bold;
+
+            curVersion = new GUIStyle();
+            curVersion.normal.textColor = Color.white;
+            curVersion.padding = new RectOffset(0, 0, 10, 0);
+            curVersion.fontStyle = FontStyle.Bold;
 
             button = new GUIStyle(GUI.skin.button);
 
@@ -488,7 +495,7 @@ namespace Frogtown
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal(colWidth[++col]);
-                        GUILayout.Label(row.version, GUILayout.ExpandWidth(false));
+                        GUILayout.Label(row.version, curVersion, GUILayout.ExpandWidth(false));
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal(colWidth[++col]);
