@@ -20,6 +20,16 @@ namespace Frogtown
         internal static Dictionary<string, FrogtownModDetails> frogtownDetails = new Dictionary<string, FrogtownModDetails>();
         internal static Dictionary<string, ModDetails> modDetails = new Dictionary<string, ModDetails>();
 
+        internal static HashSet<string> whitelistNoCheat = new HashSet<string>()
+        {
+            //This is where bug fix mods will go that don't use the API
+        };
+
+        internal static HashSet<string> whitelistFrameworkUnlisted = new HashSet<string>()
+        {
+            "com.bepis.r2api"
+        };
+
         private static bool hasInitialized = false;
 
         public static void RegisterMod(FrogtownModDetails details)
@@ -132,6 +142,7 @@ namespace Frogtown
                     }
                 }
             }
+            config.Save();
         }
 
         private static void AfterModToggle(ModDetails details)
@@ -141,13 +152,20 @@ namespace Frogtown
                 return;
             }
 
+            if (whitelistFrameworkUnlisted.Contains(details.GUID))
+            {
+                return;
+            }
+
             if (details.enabled)
             {
                 modCount++;
+                FrogtownShared.Log("FrogShared", LogLevel.Info, details.GUID + " enabled.");
             }
             else
             {
                 modCount--;
+                FrogtownShared.Log("FrogShared", LogLevel.Info, details.GUID + " disabled.");
             }
 
             bool newIsModded = modCount > 0;
@@ -183,6 +201,7 @@ namespace Frogtown
 
             foreach (var info in allModDetails)
             {
+                info.afterToggle += AfterModToggle;
                 if (frogtownDetails.TryGetValue(info.GUID, out FrogtownModDetails frogDetails))
                 {
                     info.frogtownModDetails = frogDetails;
@@ -205,7 +224,6 @@ namespace Frogtown
                     info.initialEnabled = true;
                     info.afterToggle?.Invoke(info);
                 }
-                info.afterToggle += AfterModToggle;
                 modDetails.Add(info.GUID, info);
             }
         }
@@ -277,10 +295,13 @@ namespace Frogtown
         private static void SetNonFrogtownModStatus(ModDetails details, bool enable)
         {
             string src, dst;
+            var display = details.dllFileName.Substring(1, details.dllFileName.Length - 1);
             if (enable)
             {
                 src = DISABLED_MOD_FOLDER + "\\" + details.dllFileName;
                 dst = ENABLED_MOD_FOLDER + "\\" + details.dllFileName;
+
+                FrogtownShared.Log("FrogShared", LogLevel.Info, display + " moved to plugins, will be loaded after restart.");
             }
             else
             {
@@ -290,6 +311,7 @@ namespace Frogtown
                     src = ENABLED_MOD_FOLDER + "\\" + details.dllFileName;
                 }
                 dst = DISABLED_MOD_FOLDER + "\\" + details.dllFileName;
+                FrogtownShared.Log("FrogShared", LogLevel.Info, display + " moved to disabled, will be unloaded after restart.");
             }
             System.IO.File.Move(src, dst);
 

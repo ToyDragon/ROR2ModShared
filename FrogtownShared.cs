@@ -11,7 +11,7 @@ namespace Frogtown
 {
     public delegate void OnToggle(bool newEnabled);
 
-    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "2.0.0")]
+    [BepInPlugin("com.frogtown.shared", "Frogtown Shared", "2.0.1")]
     public class FrogtownShared : BaseUnityPlugin
     {
         private static Dictionary<string, List<Func<string, string[], bool>>> chatCommandList = new Dictionary<string, List<Func<string, string[], bool>>>();
@@ -105,8 +105,8 @@ namespace Frogtown
 
         private void Init()
         {
-            ModManager.FindAndInitMods();
             RoR2Application.isModded = false;
+            ModManager.FindAndInitMods();
             new GameObject(typeof(UI).FullName, typeof(UI));
             StartCoroutine(nameof(CheckForUpdates));
         }

@@ -15,8 +15,7 @@ namespace Frogtown
         public GUIStyle button = null;
         public GUIStyle richtext = null;
 
-        public GUIStyle green = null;
-        public GUIStyle gray = null;
+        public GUIStyle nodisable = null;
         public GUIStyle red = null;
 
         public bool hasLaunched;
@@ -119,11 +118,12 @@ namespace Frogtown
             richtext.richText = true;
             richtext.normal.textColor = Color.white;
 
-            green = new GUIStyle();
-            green.normal.textColor = Color.green;
+            red = new GUIStyle();
+            red.normal.textColor = Color.red;
 
-            gray = new GUIStyle();
-            gray.normal.textColor = Color.gray;
+            nodisable = new GUIStyle();
+            nodisable.padding = new RectOffset(9, 0, 10, 0);
+            nodisable.normal.textColor = Color.white;
 
             red = new GUIStyle();
             red.padding = RectOffset(6);
@@ -241,10 +241,16 @@ namespace Frogtown
             {
                 ToggleWindow();
             }
+            if (GUILayout.Button(new GUIContent("Mod Folder", "Open the plugin folder where mod DLLs should be placed."), button, GUILayout.ExpandWidth(false)))
+            {
+                string url = "file://" + BepInEx.Paths.PluginPath;
+                FrogtownShared.Log("FrogShared", LogLevel.Info, "Openning " + url);
+                Application.OpenURL(url);
+            }
+            buttons();
 
             GUILayout.Label(GUI.tooltip);
 
-            buttons();
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
             GUILayout.EndVertical();
@@ -313,6 +319,11 @@ namespace Frogtown
             foreach(string GUID in GUIDs)
             {
                 ModManager.modDetails.TryGetValue(GUID, out ModDetails details);
+                if (ModManager.whitelistFrameworkUnlisted.Contains(details.GUID))
+                {
+                    continue;
+                }
+
                 string author = details.frogtownModDetails?.githubAuthor ?? "Unknown";
                 if(author != lastAuthor)
                 {
@@ -347,7 +358,7 @@ namespace Frogtown
                         if(details.frogtownModDetails == null && details.enabled != details.initialEnabled)
                         {
                             authorRow.statusStyle = red;
-                            authorRow.statusMessage = "Must restart game to change mod status.";
+                            authorRow.statusMessage = "Mod will be " + (details.enabled ? "enabled" : "disabled") + " the next time the game is started.";
                         }
 
                         authorRow.onToggleActive += () =>
@@ -390,7 +401,7 @@ namespace Frogtown
                     if (details.frogtownModDetails == null && details.enabled != details.initialEnabled)
                     {
                         authorRow.statusStyle = red;
-                        authorRow.statusMessage = "Must restart game to change mod status.";
+                        authorRow.statusMessage = "Mod will be " + (details.enabled ? "enabled" : "disabled") + " the next time the game is started.";
                     }
                 }
                 else
@@ -423,7 +434,7 @@ namespace Frogtown
                     if (details.frogtownModDetails == null && details.enabled != details.initialEnabled)
                     {
                         row.statusStyle = red;
-                        row.statusMessage = "Must restart game to change mod status.";
+                        row.statusMessage = "Mod will be " + (details.enabled ? "enabled" : "disabled") + " the next time the game is started.";
                     }
 
                     rows.Add(row);
@@ -520,13 +531,13 @@ namespace Frogtown
                         }
                         else
                         {
-                            GUILayout.Toggle(true, new GUIContent("", row.modName + " cannot be disabled."));
+                            GUILayout.Label(new GUIContent("X", row.modName + " cannot be disabled."), nodisable);
                         }
                     GUILayout.EndHorizontal();
                     GUILayout.BeginHorizontal(colWidth[++col]);
                         if (!string.IsNullOrEmpty(row.statusMessage))
                         {
-                            GUILayout.Label(new GUIContent("X", row.statusMessage), row.statusStyle);
+                            GUILayout.Label(new GUIContent("R", row.statusMessage), row.statusStyle);
                         }
                     GUILayout.EndHorizontal();
                 GUILayout.EndHorizontal();
