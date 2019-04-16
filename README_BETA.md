@@ -4,7 +4,7 @@ Contains shared logic for enabling/disabling mods. For mod developers, it also a
 ![In game popup](https://github.com/ToyDragon/ROR2ModShared/blob/master/Images/ingame.png?raw=true)
 
 ## Usage
-Toggle mods on and off using the checkbox in the far right column. Most mods don't support being toggled on or off, so you may see a message next to the close button telling you it can't be disabled. If the mod has a github repository like this one it will automatically be checked for updates, and if one is available you can click the new version text to jump to the releases page and download it. Close the popup with escape and open it with ctrl+F10.
+Toggle mods on and off using the checkbox in the far right column. Most mods don't support being toggled on or off without restarting, so you may see a red "X" in the status column indicating you need to restart for the change to take effect. If the mod has a github repository like this one it will automatically be checked for updates, and if one is available you can click the new version text to jump to the releases page and download it. Close the popup with escape and open it with ctrl+F10.
 
 ![Close up](https://github.com/ToyDragon/ROR2ModShared/blob/master/Images/closeup.png?raw=true)
 
@@ -37,7 +37,11 @@ public void Awake()
 {
     //Initializing a ModDetails object will allow you to assign
     //a short description and github repository to your mod, and allow
-    //it to be enabled or disabled from the UI or chat commands.
+    //it to be enabled or disabled without needing to restart the game.
+    //Without this specified the DLL containing your plugin will be 
+    //moved to a DisabledMods folder that BepInEx doesn't scan. If your
+    //mod relies on any other external files being in the same place
+    //this may cause issues.
     modDetails = new ModDetails("com.frogtown.chatcheats")
     {
         //This description shows up as a tooltip when hovering over
