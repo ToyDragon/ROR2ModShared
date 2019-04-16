@@ -83,20 +83,14 @@ namespace Frogtown
                             if (lastUpdate.AddDays(0.5) > DateTime.Now)
                             {
                                 string newV = config.Wrap("modupdates", "newestversion-" + GUID, "", "0").Value;
-                                if (newV.CompareTo(details.version) >= 0)
+                                if (newV.CompareTo(details.version) > 0)
                                 {
-                                    if (newV.CompareTo(details.version) > 0)
-                                    {
-                                        details.frogtownModDetails.newVersion = newV;
-                                    }
-                                    FrogtownShared.Log("FrogShared", LogLevel.Info, "Loaded new version of " + GUID + " from cache.");
-                                    details.newVersionLoading = false;
-                                    continue;
-                                }
-                                else
-                                {
-                                    //New version was loaded, let it run
-                                }
+                                    details.frogtownModDetails.newVersion = newV;
+                                } 
+
+                                FrogtownShared.Log("FrogShared", LogLevel.Info, "Loaded new version of " + GUID + " from cache.");
+                                details.newVersionLoading = false;
+                                continue;
                             }
                         }
 
