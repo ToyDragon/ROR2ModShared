@@ -207,7 +207,7 @@ namespace Frogtown
             UnityAction buttons = () => { };
 
             GUILayout.BeginVertical("box");
-            GUILayout.Label("Frogtown Mod Manager 2.0.0", h1);
+            GUILayout.Label("Frogtown Mod Manager 2.0.1", h1);
             GUILayout.BeginVertical("box");
 
             GUILayout.Space(3);
