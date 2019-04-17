@@ -99,7 +99,6 @@ namespace Frogtown
             ModManager.RegisterMod(details);
 
             //I use this to test multiplayer, leave it off in releases
-            //AddChatCommand("clear_mod_flag", OnClearModFlagCommand);
             Invoke(nameof(Init), 1f);
         }
 
@@ -120,13 +119,6 @@ namespace Frogtown
         {
             return instance.Config;
         }
-        
-        //private static bool OnClearModFlagCommand(string userName, string[] pieces)
-        //{
-        //    RoR2Application.isModded = false;
-        //    SendChat("Clearing mod flag.");
-        //    return true;
-        //}
 
         private static bool ParseUserAndMessage(string input, out string user, out string message)
         {
@@ -157,18 +149,20 @@ namespace Frogtown
             if (prefab != null)
             {
                 PlayerCharacterMasterController player = GetPlayerWithName(playerName);
-                if (player != null)
+                if (player != null && player.master != null)
                 {
                     var body = player.master.GetBodyObject();
-                    var oldPos = body.transform.position;
-                    var oldRot = body.transform.rotation;
-                    player.master.DestroyBody();
-                    player.master.bodyPrefab = prefab;
-                    player.master.SpawnBody(prefab, oldPos, oldRot);
-                    body.transform.position = oldPos;
-                    body.transform.rotation = oldRot;
-
-                    return true;
+                    if(body != null && body.transform != null)
+                    {
+                        var oldPos = body.transform.position;
+                        var oldRot = body.transform.rotation;
+                        player.master.DestroyBody();
+                        player.master.bodyPrefab = prefab;
+                        player.master.SpawnBody(prefab, oldPos, oldRot);
+                        body.transform.position = oldPos;
+                        body.transform.rotation = oldRot;
+                        return true;
+                    }
                 }
             }
 
@@ -185,9 +179,13 @@ namespace Frogtown
             PlayerCharacterMasterController[] allPlayers = MonoBehaviour.FindObjectsOfType<PlayerCharacterMasterController>();
             foreach (PlayerCharacterMasterController player in allPlayers)
             {
-                if (player.networkUser.GetNetworkPlayerName().GetResolvedName() == playerName)
+                if (player != null && player.networkUser != null)
                 {
-                    return player;
+                    var name = player.networkUser.GetNetworkPlayerName().GetResolvedName();
+                    if (name == playerName)
+                    {
+                        return player;
+                    }
                 }
             }
 
@@ -216,8 +214,9 @@ namespace Frogtown
                     }
                     catch (Exception e)
                     {
-                        Debug.Log("Command " + pieces[0] + " logged exception \"" + e.Message + "\"");
-                    }
+                        FrogtownShared.Log("FrogShared", LogLevel.Error, "Command " + pieces[0] + " logged exception \"" + e.Message + "\"");
+                        FrogtownShared.Log("FrogShared", LogLevel.Error, e.StackTrace);
+                    } 
                 }
             }
         }

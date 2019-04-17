@@ -202,15 +202,15 @@ namespace Frogtown
 
             foreach (var info in allModDetails)
             {
+                modDetails.Add(info.GUID, info);
                 info.afterToggle += AfterModToggle;
                 if (frogtownDetails.TryGetValue(info.GUID, out FrogtownModDetails frogDetails))
                 {
                     info.frogtownModDetails = frogDetails;
                     frogDetails.modDetails = info;
 
-                    string raw = config.Wrap("mods", info.GUID, "", "true").Value;
-                    bool.TryParse(raw, out bool shouldBeActive);
-
+                    string raw = config.Wrap("mods", info.GUID, "", "True").Value;
+                    bool shouldBeActive = raw.ToLower() == "true";
                     if (shouldBeActive)
                     {
                         ToggleMod(info.GUID, true);
@@ -225,7 +225,6 @@ namespace Frogtown
                     info.initialEnabled = true;
                     info.afterToggle?.Invoke(info);
                 }
-                modDetails.Add(info.GUID, info);
             }
         }
 
