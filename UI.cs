@@ -560,7 +560,12 @@ namespace Frogtown
 
 
             GUILayout.BeginHorizontal();
-            uiSettings.showOnStart = GUILayout.Toggle(uiSettings.showOnStart, "Show this window on startup", GUILayout.ExpandWidth(false));
+            bool newShowOnStart = GUILayout.Toggle(uiSettings.showOnStart, "Show this window on startup", GUILayout.ExpandWidth(false));
+            if(newShowOnStart != uiSettings.showOnStart)
+            {
+                uiSettings.showOnStart = newShowOnStart;
+                SaveSettings();
+            }
             GUILayout.EndHorizontal();
 
             GUILayout.Space(5);
