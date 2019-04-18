@@ -9,10 +9,11 @@ namespace Frogtown
 {
     public class UI : MonoBehaviour
     {
+        public static GUIStyle button = null;
+
         private GUIStyle window = null;
         private GUIStyle h1 = null;
         private GUIStyle h2 = null;
-        private GUIStyle button = null;
         private GUIStyle richtext = null;
         private GUIStyle curVersion = null;
 
@@ -33,19 +34,21 @@ namespace Frogtown
         private List<Column> columns = new List<Column>();
         private bool GameCursorLocked { get; set; }
 
-        private UISettings uiSettings = new UISettings();
+        internal UISettings uiSettings = new UISettings();
+        internal static UI instance;
 
         private HashSet<string> collapsedAuthors = new HashSet<string>();
 
         void Awake()
         {
+            instance = this;
             DontDestroyOnLoad(this);
             windowSize = new Vector2(960, 720);
             scrollPositions = new Vector2[3];
             LoadSettings();
         }
 
-        private void SaveSettings()
+        internal void SaveSettings()
         {
             var config = FrogtownShared.GetConfig();
             config.Wrap("ui", "scale", "", "1").Value = uiSettings.scale.ToString();
@@ -214,7 +217,7 @@ namespace Frogtown
             UnityAction buttons = () => { };
 
             GUILayout.BeginVertical("box");
-            GUILayout.Label("Frogtown Mod Manager 2.0.2", h1);
+            GUILayout.Label("Frogtown Mod Manager 2.0.3", h1);
             GUILayout.BeginVertical("box");
 
             GUILayout.Space(3);
@@ -558,43 +561,33 @@ namespace Frogtown
             var minWidth = GUILayout.MinWidth(windowSize.x);
             scrollPositions[1] = GUILayout.BeginScrollView(scrollPositions[1], minWidth);
 
+            var GUIDs = ModManager.modDetails.Keys.ToArray();
+            Array.Sort(GUIDs, (a, b) => {
+                ModManager.modDetails.TryGetValue(a, out ModDetails details);
+                string aAuthor = details.frogtownModDetails?.githubAuthor ?? "Unknown";
 
-            GUILayout.BeginHorizontal();
-            bool newShowOnStart = GUILayout.Toggle(uiSettings.showOnStart, "Show this window on startup", GUILayout.ExpandWidth(false));
-            if(newShowOnStart != uiSettings.showOnStart)
+                ModManager.modDetails.TryGetValue(b, out details);
+                string bAuthor = details.frogtownModDetails?.githubAuthor ?? "Unknown";
+
+                return aAuthor.CompareTo(bAuthor);
+            });
+
+            foreach (string GUID in GUIDs)
             {
-                uiSettings.showOnStart = newShowOnStart;
-                SaveSettings();
+                ModManager.modDetails.TryGetValue(GUID, out ModDetails details);
+                if(details == null || details.frogtownModDetails == null || details.frogtownModDetails.OnGUI == null)
+                {
+                    continue;
+                }
+
+                GUILayout.Label(new GUIContent(details.modName, details.frogtownModDetails.description), h2);
+                GUILayout.BeginVertical("box");
+                details.frogtownModDetails.OnGUI();
+                GUILayout.EndVertical();
+
             }
-            GUILayout.EndHorizontal();
 
             GUILayout.Space(5);
-
-            /*
-            GUILayout.BeginVertical("box");
-            GUILayout.Label("UI", bold, GUILayout.ExpandWidth(false));
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Scale", GUILayout.ExpandWidth(false), GUILayout.ExpandWidth(false));
-            pendingScale = GUILayout.HorizontalSlider(pendingScale, 0.5f, 2f, GUILayout.Width(200));
-            GUILayout.Label(" " + pendingScale.ToString("f2"), GUILayout.ExpandWidth(false));
-            GUILayout.EndHorizontal();
-            buttons += () =>
-            {
-                if (GUILayout.Button("Apply And Close", button, GUILayout.ExpandWidth(false)))
-                {
-                    uiSettings.scale = pendingScale;
-                    ToggleWindow();
-                    SaveSettings();
-                }
-
-                if (GUILayout.Button("Apply", button, GUILayout.ExpandWidth(false)))
-                {
-                    uiSettings.scale = pendingScale;
-                    SaveSettings();
-                }
-            };
-            GUILayout.EndVertical();
-            */
 
             GUILayout.EndScrollView();
         }
@@ -681,7 +674,7 @@ namespace Frogtown
             public UnityAction onToggleActive = null;
         }
 
-        class UISettings
+        internal class UISettings
         {
             public bool showOnStart;
             public float scale;

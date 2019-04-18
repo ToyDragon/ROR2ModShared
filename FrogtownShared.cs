@@ -11,7 +11,7 @@ namespace Frogtown
 {
     public delegate void OnToggle(bool newEnabled);
 
-    [BepInPlugin("com.frogtown.shared", "Frogtown Mod Manager", "2.0.2")]
+    [BepInPlugin("com.frogtown.shared", "Frogtown Mod Manager", "2.0.3")]
     public class FrogtownShared : BaseUnityPlugin
     {
         private static Dictionary<string, List<Func<string, string[], bool>>> chatCommandList = new Dictionary<string, List<Func<string, string[], bool>>>();
@@ -93,7 +93,16 @@ namespace Frogtown
                 githubAuthor = "ToyDragon",
                 githubRepo = "ROR2ModShared",
                 description = "Powers this UI and contains shared resources for other mods.",
-                noDisable = true
+                noDisable = true,
+                OnGUI = () =>
+                {
+                    bool newShowOnStart = GUILayout.Toggle(UI.instance.uiSettings.showOnStart, "Show this window on startup", GUILayout.ExpandWidth(false));
+                    if (newShowOnStart != UI.instance.uiSettings.showOnStart)
+                    {
+                        UI.instance.uiSettings.showOnStart = newShowOnStart;
+                        UI.instance.SaveSettings();
+                    }
+                }
             };
             details.OnlyContainsBugFixesOrUIChangesThatArentContriversial();
             ModManager.RegisterMod(details);

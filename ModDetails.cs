@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using UnityEngine.Events;
 
 namespace Frogtown
 {
@@ -61,6 +62,7 @@ namespace Frogtown
         public bool isNotCheaty { get; private set; }
         public string releaseUrl { get; internal set; }
         public bool newVersionLoading { get; internal set; }
+        public UnityAction OnGUI;
         public bool enabled
         {
             get { return modDetails.enabled; }
