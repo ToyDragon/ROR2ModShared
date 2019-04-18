@@ -51,7 +51,6 @@ namespace Frogtown
 
     public class FrogtownModDetails
     {
-
         public string GUID;
         public string githubAuthor;
         public string githubRepo;
@@ -63,6 +62,7 @@ namespace Frogtown
         public string releaseUrl { get; internal set; }
         public bool newVersionLoading { get; internal set; }
         public UnityAction OnGUI;
+        public UnityAction afterToggle;
         public bool enabled
         {
             get { return modDetails.enabled; }

@@ -11,7 +11,7 @@ namespace Frogtown
 {
     public delegate void OnToggle(bool newEnabled);
 
-    [BepInPlugin("com.frogtown.shared", "Frogtown Mod Manager", "2.0.3")]
+    [BepInPlugin("com.frogtown.shared", "Frogtown Mod Manager", "2.0.4")]
     public class FrogtownShared : BaseUnityPlugin
     {
         private static Dictionary<string, List<Func<string, string[], bool>>> chatCommandList = new Dictionary<string, List<Func<string, string[], bool>>>();
@@ -100,7 +100,7 @@ namespace Frogtown
                     if (newShowOnStart != UI.instance.uiSettings.showOnStart)
                     {
                         UI.instance.uiSettings.showOnStart = newShowOnStart;
-                        UI.instance.SaveSettings();
+                        UI.instance.SaveSettings(); 
                     }
                 }
             };

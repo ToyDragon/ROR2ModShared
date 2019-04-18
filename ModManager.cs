@@ -279,6 +279,7 @@ namespace Frogtown
                         {
                             details.enabled = enable;
                             details.afterToggle?.Invoke(details);
+                            details.frogtownModDetails.afterToggle?.Invoke();
                             var config = FrogtownShared.GetConfig();
                             config.Wrap("mods", GUID, "", "true").Value = enable.ToString();
                             config.Save();
