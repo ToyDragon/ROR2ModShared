@@ -1,4 +1,4 @@
-# Frogtown Mod Library
+# Frogtown Mod Manager
 Contains UI for enabling/disabling mods. For mod developers, it also adds an interface for interacting with chat commands.
 
 ![In game popup](https://github.com/ToyDragon/ROR2ModShared/blob/master/Images/ingame.png?raw=true)
