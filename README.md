@@ -52,20 +52,65 @@ public void Awake()
         //your thunderstore page will be included, feel free to put any
         //additional documentation there.
         description = "Adds the /change_char and /give_item chat commands.",
-        
-        //author is a string used to group your mods together in the
-        //mod list.
-        author = "ToyDragon",
 
         //thunderstoreFullName is used to search for your mod in the
         //thunderstore API. It will be your dependency string without
         //the version suffix.
         thunderstoreFullName = "ToyDragon-CheatingChatCommands",
+        
+        
+        //author is a string used to group your mods together in the
+        //mod list. By default it will be pulled from your thunderstore page,
+        //but you can override it here.
+        author = "ToyDragon",
     };
     FrogtownShared.RegisterMod(modDetails);
     
     //When all mods are disabled the isModded flag will be updated
     //to false, and when any are enabled it will set it back to true.
+}
+```
+
+Alternatively if you don't want to add a hard dependency you can use the R2API reflection features to check for the manager at runtime:
+```C#
+Type modDetailsType = null, frogtownSharedType = null;
+foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+{
+    if (!a.FullName.StartsWith("FrogtownShared,")) continue;
+    var allTypes = a.GetTypes();
+    foreach (var t in allTypes)
+    {
+        if (t.Name == "FrogtownModDetails") modDetailsType = t;
+        if (t.Name == "FrogtownShared") frogtownSharedType = t;
+    }
+    break;
+}
+
+try
+{
+    if (modDetailsType == null || frogtownSharedType == null) return;
+    //Will be set back to true by the manager when it initializes
+    YourMod.Enabled = false;
+
+    var publicInstance = BindingFlags.Instance | BindingFlags.Public;
+    var obj = Activator.CreateInstance(modDetailsType, "com.kookehs.statsdisplay", publicInstance);
+    obj.SetFieldValue("description", "Displays character stats on Info Screen.", publicInstance);
+    obj.SetFieldValue("OnGUI", new UnityAction(() => { OnSettingsGui(); }), publicInstance);
+    obj.SetFieldValue("afterToggle", new UnityAction(() =>
+    {
+        YourMod.Enabled = obj.GetPropertyValue<bool>("enabled", publicInstance);
+    }), publicInstance);
+
+    var register = frogtownSharedType.GetMethod("RegisterMod", BindingFlags.Static | BindingFlags.Public);
+    register.Invoke(null, new[] { obj });
+
+    InitManagerRelatedStuff();
+}
+catch (Exception e)
+{
+    Debug.LogError("Failed to initialize mod manager features");
+    Debug.LogError(e.Message);
+    Debug.LogError(e.StackTrace);
 }
 ```
 
