@@ -93,7 +93,7 @@ try
     YourMod.Enabled = false;
 
     var publicInstance = BindingFlags.Instance | BindingFlags.Public;
-    var obj = Activator.CreateInstance(modDetailsType, "com.kookehs.statsdisplay", publicInstance);
+    var obj = Activator.CreateInstance(modDetailsType, "com.yourname.yourmod", publicInstance);
     obj.SetFieldValue("description", "Displays character stats on Info Screen.", publicInstance);
     obj.SetFieldValue("OnGUI", new UnityAction(() => { OnSettingsGui(); }), publicInstance);
     obj.SetFieldValue("afterToggle", new UnityAction(() =>
